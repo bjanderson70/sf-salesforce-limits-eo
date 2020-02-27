@@ -13,7 +13,7 @@
  *     the documentation and/or other materials provided with the
  *     distribution.
  *
- *   * Neither the name of Bill Andersonnor Bill Anderson nor the names of its
+ *   * Neither the name of Bill Anderson nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -267,7 +267,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         this.limitAscending=true;
         this.limitOrderBy='';
         this.limitIdentityType =  connectionParams != null ? connectionParams.principalType :  DataSource.IdentityType.ANONYMOUS;
-        log('[connectionParams]:'+connectionParams);
+
     }// end of ctor
     /**
      * default ctor
