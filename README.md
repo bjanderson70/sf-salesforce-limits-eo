@@ -14,7 +14,9 @@ Standard Salesforce DX project structure
 
 ## Issues
 There is currently an issue with the Report Designer when creating a Report giving an internal error.
-This occurs with both Anonymous and Name Credentials
+This occurs with both Anonymous and Name Credentials.
+
+You will have to update the AuthPorvider, Named Credentials, etc.
 
 ## Deploying to Production
 
