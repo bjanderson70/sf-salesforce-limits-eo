@@ -13,7 +13,7 @@
  *     the documentation and/or other materials provided with the
  *     distribution.
  *
- *   * Neither the name of Bill Andersonnor Bill Anderson nor the names of its
+ *   * Neither the name of Bill Anderson nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,7 +34,7 @@
  *                       Supports Anonymous and Named Credentials
  * @Author             : Bill Anderson
  * @Group              : External Data Source
-  **/
+ **/
 
 global without sharing class SalesforceLimitsDataSourceConnection extends DataSource.Connection
 {
@@ -267,7 +267,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         this.limitAscending=true;
         this.limitOrderBy='';
         this.limitIdentityType =  connectionParams != null ? connectionParams.principalType :  DataSource.IdentityType.ANONYMOUS;
-        log('[connectionParams]:'+connectionParams);
+
     }// end of ctor
     /**
      * default ctor
@@ -453,6 +453,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @param  results current list
      * @return collection of filtered items
      */
+    @TestVisible
     private List<LimitResultsWrapper> filterAllResults( List<LimitResultsWrapper> results){
 
         // this is the filterd (sorted) list
@@ -490,6 +491,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     /*
      * Get the filter term (WHERE params)
      */
+    @TestVisible
     private void getFilterSoqlTerm(DataSource.Filter filter)
     {
         this.limitWhereValue = '';
@@ -512,9 +514,10 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
 
         }
     }// end of getFilterSoqlTerm
-    /*
-     * Determine user order
-     */
+     /*
+      * Determine user order
+      */
+    @TestVisible
     private void getOrderSoqlTerm(List<DataSource.Order> orders)
     {
         this.limitOrderBy='';
@@ -533,19 +536,13 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             this.limitAscending= order.direction == Datasource.OrderDirection.ASCENDING;
         }
     }// end of getOrderSoqlTerm
-    /*
-     * string result
-     */
-    private String wrapValue(Object foundValue) {
-        if (foundValue instanceof String)
-            return '\'' + String.valueOf(foundValue) + '\'';
-        return String.valueOf(foundValue);
-    }// end of wrapValue
+
     /**
      * salesforceApexLimitsCallout
      * @description go get the limits
      * @return collection of limits
      */
+    @TestVisible
     private List<LimitResultsWrapper> salesforceApexLimitsCallout() {
         // any data
         if ( this.theLimits == null ) {
@@ -595,6 +592,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @param  endpt endpoint
      * @return correct format of the URL
      */
+    @TestVisible
     private static string makeEndpoint(DataSource.IdentityType itype, String endpt){
         String domainUrl = itype == DataSource.IdentityType.ANONYMOUS ? DISPLAY_URL : NAMED_CRED_ORG_URL;
         //  url
@@ -603,6 +601,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     /*
      * Get the latest API Version
      */
+    @TestVisible
     private static String getLatestAPIVersion(DataSource.IdentityType itype)
     {
         // set the default
@@ -636,13 +635,15 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @param  endpoint
      * @return HttpRequest
      */
-    static HttpRequest createHttpRequest(DataSource.IdentityType itype,string endpoint) {
+    @TestVisible
+    private static HttpRequest createHttpRequest(DataSource.IdentityType itype,string endpoint) {
         HttpRequest request = new HttpRequest();
 
         // if anonymous, set the session (sessionid can be null )
         if ( itype == DataSource.IdentityType.ANONYMOUS ) {
             String sessionId = getSessionId();
             if ( string.isNotBlank(sessionId)) {
+                // Bearer
                 request.setHeader('Authorization','Bearer '+ sessionId );
             }
         }
@@ -658,11 +659,14 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @param  req the request
      * @return JSON data (String)
      */
-    static String makeCallout(HttpRequest req )
+    @TestVisible
+    private static String makeCallout(HttpRequest req )
     {
         String result = null;
         try
         {
+            final integer retryMax = 10;
+            integer retryCount=0;
             Http callout = new Http();
             HttpResponse resp = callout.send(req);
             result = resp.getBody();
@@ -670,8 +674,13 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             while (resp.getStatusCode() == 302) {
                 req.setEndpoint(resp.getHeader('Location'));
                 resp = callout.send(req);
+                retryCount++;
+                // max retry then break out
+                if ( retryCount == retryMax) {
+                    break;
+                }
             }
-            // i if not successful ??
+            // if not successful ??
             if(resp.getStatusCode() != 200) {
                 SalesforceLimitsDataSourceConnection.log('[ERROR - salesforceApexLimitsCallout]:'+ result);
                 result=null;
@@ -679,6 +688,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         } catch (Exception excp) {
             SalesforceLimitsDataSourceConnection.log(excp);
         }
+
         return result;
     }// end of makeCallout
     /**
@@ -686,8 +696,15 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @description get user session id
      * @return  session Id
      */
+    @TestVisible
     private static String getSessionId(){
-        return  UserInfo.getSessionId();
+        // just for testing
+        if ( Test.isRunningTest() ) {
+            string visibleSessionId = EncodingUtil.base64Encode(Blob.valueOf(userinfo.getSessionId()));
+            SalesforceLimitsDataSourceConnection.log('[DATA - getSessionId]:'+ visibleSessionId);
+        }
+
+        return UserInfo.getSessionId();
     }// end of getSessionId
 
 } // end of SalesforceLimitsDataSourceConnection

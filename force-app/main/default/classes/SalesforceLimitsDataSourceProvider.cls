@@ -13,7 +13,7 @@
  *     the documentation and/or other materials provided with the
  *     distribution.
  *
- *   * Neither the name of Bill Andersonnor Bill Anderson nor the names of its
+ *   * Neither the name of Bill Anderson nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -44,12 +44,16 @@ global with sharing class SalesforceLimitsDataSourceProvider extends DataSource.
     override global List<DataSource.AuthenticationCapability> getAuthenticationCapabilities()
     {
         List<DataSource.AuthenticationCapability> capabilities =
-            new List<DataSource.AuthenticationCapability>();
-        capabilities.add(DataSource.AuthenticationCapability.ANONYMOUS);
-        capabilities.add(DataSource.AuthenticationCapability.OAUTH);
+            new List<DataSource.AuthenticationCapability> {
+            // applies to Classic -- 
+            // Lightning, the session is NOT API enable ( have to use Named Credentials)
+            DataSource.AuthenticationCapability.ANONYMOUS,
+            DataSource.AuthenticationCapability.OAUTH
+        };
 
         return capabilities;
     }// end of getAuthenticationCapabilities
+
     /**
      * getCapabilities 
      * @description get Capabilities
