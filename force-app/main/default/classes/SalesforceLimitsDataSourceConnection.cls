@@ -34,6 +34,7 @@
  *                       Supports Anonymous and Named Credentials
  * @Author             : Bill Anderson
  * @Group              : External Data Source
+ *
  **/
 
 global without sharing class SalesforceLimitsDataSourceConnection extends DataSource.Connection
