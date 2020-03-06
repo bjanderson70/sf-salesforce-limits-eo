@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+    <authorizeUrl>https://YOURNAME.my.salesforce.com/services/oauth2/authorize</authorizeUrl>
+    <consumerKey>3MVG9LBJLApeX_PAxholSqyti_hQmqgyTgSZfY6hRrP6TmllfM7Sj2_z8NspoNEsEakCWwrq4AwAwDZjDt0MZ</consumerKey>
+    <consumerSecret>BUZD3eyvs6EhXMwon0yIneYkNCYLlSSf28ZXCKZvajRgrzu4bO+f2Cf6YBOPgFAUsvEdeSDQS5HsDmbFP+ucvHBBGPdiC2rX</consumerSecret>
+    <defaultScopes>refresh_token full web api</defaultScopes>
+    <friendlyName>Salesforce Limits</friendlyName>
+    <iconUrl>https://login.salesforce.com/icons/salesforce-white.png</iconUrl>
+    <includeOrgIdInIdentifier>true</includeOrgIdInIdentifier>
+    <providerType>Salesforce</providerType>
+    <sendAccessTokenInHeader>false</sendAccessTokenInHeader>
+    <sendClientCredentialsInHeader>false</sendClientCredentialsInHeader>
+    <sendSecretInApis>true</sendSecretInApis>
+    <tokenUrl>https://YOURNAME.my.salesforce.com/services/oauth2/token</tokenUrl>
+</AuthProvider>

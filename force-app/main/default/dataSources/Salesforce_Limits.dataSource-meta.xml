@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalDataSource xmlns="http://soap.sforce.com/2006/04/metadata">
+    <authProvider>Salesforce_Limits</authProvider>
+    <customConfiguration>{&quot;noIdMapping&quot;:&quot;false&quot;}</customConfiguration>
+    <isWritable>false</isWritable>
+    <label>Salesforce Limits</label>
+    <oauthScope>refresh_token full api web</oauthScope>
+    <principalType>NamedUser</principalType>
+    <protocol>Oauth</protocol>
+    <type>SalesforceLimitsDataSourceProvider</type>
+</ExternalDataSource>
