@@ -34,6 +34,10 @@
  *                       Supports Anonymous and Named Credentials
  * @Author             : Bill Anderson
  * @Group              : External Data Source
+<<<<<<< HEAD
+=======
+ *
+>>>>>>> 8e0d2a3bb537103e3d212297dc0ce0f97595d155
  **/
 
 global without sharing class SalesforceLimitsDataSourceConnection extends DataSource.Connection
@@ -543,10 +547,17 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             }
 
         }
+<<<<<<< HEAD
     }    // end of getFilterSoqlTerm
          /*
           * Determine user order
           */
+=======
+    }// end of getFilterSoqlTerm
+     /*
+      * Determine user order
+      */
+>>>>>>> 8e0d2a3bb537103e3d212297dc0ce0f97595d155
     @TestVisible
     private void getOrderSoqlTerm(List<DataSource.Order> orders)
     {
@@ -565,7 +576,11 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             this.limitOrderBy=order.columnName;
             this.limitAscending= order.direction == Datasource.OrderDirection.ASCENDING;
         }
+<<<<<<< HEAD
     }    // end of getOrderSoqlTerm
+=======
+    }// end of getOrderSoqlTerm
+>>>>>>> 8e0d2a3bb537103e3d212297dc0ce0f97595d155
 
     /**
      * salesforceApexLimitsCallout
@@ -735,6 +750,12 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         }
 
         return UserInfo.getSessionId();
+<<<<<<< HEAD
     }    // end of getSessionId
 
 }     // end of SalesforceLimitsDataSourceConnection
+=======
+    }// end of getSessionId
+
+} // end of SalesforceLimitsDataSourceConnection
+>>>>>>> 8e0d2a3bb537103e3d212297dc0ce0f97595d155
