@@ -34,7 +34,7 @@
  *                       Supports Anonymous and Named Credentials
  * @Author             : Bill Anderson
  * @Group              : External Data Source
-  **/
+ **/
 
 global without sharing class SalesforceLimitsDataSourceConnection extends DataSource.Connection
 {
@@ -42,29 +42,43 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     // Data Members
     //
     //////////////////////////////////////////////////////////////////////////////////
-
+    @TestVisible
     static final string SERVICE_VERSION = '48.0';
+    @TestVisible
     static final string NAMED_CRED_ORG_URL = 'callout:Salesforce_Limits';
+    @TestVisible
     static final String DISPLAY_URL= URL.getSalesforceBaseUrl().toExternalForm();
+    @TestVisible
     static final boolean DEBUG_LOG = true;
 
     /*
      * Our current field-names
      */
+    @TestVisible
     static final string FIELDNAME_NAME= 'Name';
+    @TestVisible
     static final string FIELDNAME_MAX= 'Max';
+    @TestVisible
     static final string FIELDNAME_RATIO= 'Ratio';
+    @TestVisible
     static final string FIELDNAME_REMAINING= 'Remaining';
+    @TestVisible
     static final string FIELDNAME_EXTERNAL_ID= 'ExternalId';
+    @TestVisible
     static final string FIELDNAME_ID= 'Id';
+    @TestVisible
     static final string FIELDNAME_DISPLAY_URL= 'DisplayUrl';
 
+    @TestVisible
     static final string DESCRIPTION = 'Salesforce Limits';
+    @TestVisible
     static final string LABEL_SINGULAR = 'Salesforce Limit';
+    @TestVisible
     static final string TABLE_NAME = 'SalesforceLimits';
     /**
      * map filter to string
      **/
+    @TestVisible
     static final Map<DataSource.FilterType, String> filterMap = new Map<DataSource.FilterType, String> {
         DataSource.FilterType.AND_ => ' AND ',
         DataSource.FilterType.CONTAINS => ' LIKE \'%{0}%\'',
@@ -160,6 +174,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         /*
          * Sort by Name
          */
+        @TestVisible
         public string sortBy {
             get;
             private set;
@@ -167,6 +182,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         /*
          * assending order (defaults to true)
          */
+        @TestVisible
         public boolean sortAscending {
             get;
             private set;
@@ -207,42 +223,18 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         public Integer compareTo(Object compareTo) {
             // Cast argument to LimitResultsWrapper
             LimitResultsWrapper compareToLimit = (LimitResultsWrapper)compareTo;
-
-            // The return value of 0 indicates that both elements are equal.
-            Integer returnValue = 0;
-            if ( this.sortBy == FIELDNAME_NAME) {
-                if (lresult.name > compareToLimit.lresult.name) {
-                    // Set return value to a positive value.
-                    returnValue = 1;
-                } else if (lresult.name < compareToLimit.lresult.name) {
-                    // Set return value to a negative value.
-                    returnValue = -1;
-                }
-            } else if ( this.sortBy == FIELDNAME_MAX) {
-                if (lresult.max > compareToLimit.lresult.max) {
-                    // Set return value to a positive value.
-                    returnValue = 1;
-                } else if (lresult.max < compareToLimit.lresult.max) {
-                    // Set return value to a negative value.
-                    returnValue = -1;
-                }
-            } else if ( this.sortBy == FIELDNAME_REMAINING) {
-                if (lresult.remaining > compareToLimit.lresult.remaining) {
-                    // Set return value to a positive value.
-                    returnValue = 1;
-                } else if (lresult.remaining < compareToLimit.lresult.remaining) {
-                    // Set return value to a negative value.
-                    returnValue = -1;
-                }
-            }  else if ( this.sortBy == FIELDNAME_RATIO) {
-                if (lresult.ratio > compareToLimit.lresult.ratio) {
-                    // Set return value to a positive value.
-                    returnValue = 1;
-                } else if (lresult.ratio < compareToLimit.lresult.ratio) {
-                    // Set return value to a negative value.
-                    returnValue = -1;
-                }
+            
+            // bogus data
+            if ( compareToLimit == null ) {
+                return -1;
             }
+
+            String index = this.sortBy;
+            // The return value of 0 indicates that both elements are equal.
+            Integer returnValue = this.compareValues(index
+                                                     , this.getBy(index)
+                                                     , compareToLimit.getBy(index));
+ 
             // if descending, flip it
             if ( this.sortAscending == false
                  && returnValue != 0) {
@@ -251,7 +243,45 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
 
             return returnValue;
         } // end of compareTo
-    } // end of LimitResultsWrapper
+        /*
+         * compareValues
+         * @description compare element and determine order (0 ==, 1 >, -1 <)
+         * @return (0 ==, 1 >, -1 <)
+         */
+        @TestVisible
+        private integer compareValues(string name
+                                      , object lvalue
+                                      , object rvalue){
+
+            integer returnValue=0;
+             // is it a string type
+            if ( name == FIELDNAME_NAME
+                 || name == FIELDNAME_EXTERNAL_ID
+                 || name == FIELDNAME_DISPLAY_URL ) {
+                if ((String)lvalue > (String)rvalue) {
+                    // Set return value to a positive value.
+                    returnValue = 1;
+                } else if ((String)lvalue < (String)rvalue) {
+                    // Set return value to a negative value.
+                    returnValue = -1;
+                }
+
+            } else {
+                // it is decimal values
+                if ((Decimal)lvalue > (Decimal)rvalue) {
+                    // Set return value to a positive value.
+                    returnValue = 1;
+                } else if ((Decimal)lvalue < (Decimal)rvalue) {
+                    // Set return value to a negative value.
+                    returnValue = -1;
+                }
+
+            }
+
+            return returnValue;
+        }// end of sortByValue
+
+    }     // end of LimitResultsWrapper
 
     //////////////////////////////////////////////////////////////////////////////////
     // Ctors
@@ -268,13 +298,13 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         this.limitOrderBy='';
         this.limitIdentityType =  connectionParams != null ? connectionParams.principalType :  DataSource.IdentityType.ANONYMOUS;
 
-    }// end of ctor
+    }    // end of ctor
     /**
      * default ctor
      */
     global SalesforceLimitsDataSourceConnection() {
         this(null);
-    }// end of ctor
+    }    // end of ctor
 
     //////////////////////////////////////////////////////////////////////////////////
     // Public Properties
@@ -313,7 +343,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         if ( excp != null ) {
             SalesforceLimitsDataSourceConnection.log( ' [EXCEPTION] '+ excp.getMessage(),true);
         }
-    }// end of log
+    }    // end of log
 
     /**
      * log
@@ -323,7 +353,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      */
     public static void log(String message) {
         SalesforceLimitsDataSourceConnection.log(message,SalesforceLimitsDataSourceConnection.DEBUG_LOG);
-    }// end of log
+    }    // end of log
     /**
      * log
      * @description log messages to debug log
@@ -334,7 +364,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         if ( message != null && loggerOn ) {
             system.debug('+++ SalesforceLimitsDataSourceConnection:' + message);
         }
-    }// end of log
+    }    // end of log
 
     /*
      * Sync with Salesforce
@@ -359,7 +389,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         tables.add(acTable);
 
         return tables;
-    }// end of sync
+    }    // end of sync
     /*
      *  Query on external object
      */
@@ -424,23 +454,23 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
                 rowsList.add(rowResults);
                 rowResults=null;
                 addExternal=false;
-            }// end if
+            }    // end if
             startAt++;
-        }// end for
+        }    // end for
 
         Datasource.TableResult queryResult = DataSource.TableResult.get(context,rowsList);
         queryResult.totalSize = rowsList.size();
 
         return queryResult;
 
-    }// end of query
+    }    // end of query
 
     /*
      * search request
      */
     override global List<DataSource.TableResult> search(DataSource.SearchContext context) {
         return DataSource.SearchUtils.searchByName(context, this);
-    }// end of search
+    }    // end of search
 
     //////////////////////////////////////////////////////////////////////////////////
     // Private Methods
@@ -453,6 +483,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @param  results current list
      * @return collection of filtered items
      */
+    @TestVisible
     private List<LimitResultsWrapper> filterAllResults( List<LimitResultsWrapper> results){
 
         // this is the filterd (sorted) list
@@ -485,11 +516,12 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
 
         }
         return filterResults;
-    }// end of filterAllResults
+    }    // end of filterAllResults
 
     /*
      * Get the filter term (WHERE params)
      */
+    @TestVisible
     private void getFilterSoqlTerm(DataSource.Filter filter)
     {
         this.limitWhereValue = '';
@@ -511,10 +543,11 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             }
 
         }
-    }// end of getFilterSoqlTerm
-    /*
-     * Determine user order
-     */
+    }    // end of getFilterSoqlTerm
+         /*
+          * Determine user order
+          */
+    @TestVisible
     private void getOrderSoqlTerm(List<DataSource.Order> orders)
     {
         this.limitOrderBy='';
@@ -532,20 +565,14 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             this.limitOrderBy=order.columnName;
             this.limitAscending= order.direction == Datasource.OrderDirection.ASCENDING;
         }
-    }// end of getOrderSoqlTerm
-    /*
-     * string result
-     */
-    private String wrapValue(Object foundValue) {
-        if (foundValue instanceof String)
-            return '\'' + String.valueOf(foundValue) + '\'';
-        return String.valueOf(foundValue);
-    }// end of wrapValue
+    }    // end of getOrderSoqlTerm
+
     /**
      * salesforceApexLimitsCallout
      * @description go get the limits
      * @return collection of limits
      */
+    @TestVisible
     private List<LimitResultsWrapper> salesforceApexLimitsCallout() {
         // any data
         if ( this.theLimits == null ) {
@@ -581,13 +608,13 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
                                                                                    ,resp.Max
                                                                                    ,resp.Remaining)));
                 }
-            }// end if
+            }    // end if
         } catch(Exception excp) {
             SalesforceLimitsDataSourceConnection.log(excp);
         }
 
         return this.theLimits;
-    }// end of salesforceApexLimitsCallout
+    }    // end of salesforceApexLimitsCallout
     /**
      * makeEndpoint
      * @description make an endpoint base don identity-type
@@ -595,14 +622,16 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @param  endpt endpoint
      * @return correct format of the URL
      */
+    @TestVisible
     private static string makeEndpoint(DataSource.IdentityType itype, String endpt){
         String domainUrl = itype == DataSource.IdentityType.ANONYMOUS ? DISPLAY_URL : NAMED_CRED_ORG_URL;
         //  url
         return domainUrl + endpt;
-    }// end of makeEndpoint
+    }    // end of makeEndpoint
     /*
      * Get the latest API Version
      */
+    @TestVisible
     private static String getLatestAPIVersion(DataSource.IdentityType itype)
     {
         // set the default
@@ -628,7 +657,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             SalesforceLimitsDataSourceConnection.log(excp);
         }
         return latestVersion;
-    } // end of getLatestAPIVersion
+    }     // end of getLatestAPIVersion
 
     /**
      * createHttpRequest
@@ -636,13 +665,15 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * @param  endpoint
      * @return HttpRequest
      */
-    static HttpRequest createHttpRequest(DataSource.IdentityType itype,string endpoint) {
+    @TestVisible
+    private static HttpRequest createHttpRequest(DataSource.IdentityType itype,string endpoint) {
         HttpRequest request = new HttpRequest();
 
         // if anonymous, set the session (sessionid can be null )
         if ( itype == DataSource.IdentityType.ANONYMOUS ) {
             String sessionId = getSessionId();
             if ( string.isNotBlank(sessionId)) {
+                // Bearer
                 request.setHeader('Authorization','Bearer '+ sessionId );
             }
         }
@@ -651,18 +682,21 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         request.setMethod('GET');
 
         return request;
-    }// end of createHttpRequest
+    }    // end of createHttpRequest
     /**
      * makeCallout
      * @description make the callout
      * @param  req the request
      * @return JSON data (String)
      */
-    static String makeCallout(HttpRequest req )
+    @TestVisible
+    private static String makeCallout(HttpRequest req )
     {
         String result = null;
         try
         {
+            final integer retryMax = 10;
+            integer retryCount=0;
             Http callout = new Http();
             HttpResponse resp = callout.send(req);
             result = resp.getBody();
@@ -670,8 +704,13 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             while (resp.getStatusCode() == 302) {
                 req.setEndpoint(resp.getHeader('Location'));
                 resp = callout.send(req);
+                retryCount++;
+                // max retry then break out
+                if ( retryCount == retryMax) {
+                    break;
+                }
             }
-            // i if not successful ??
+            // if not successful ??
             if(resp.getStatusCode() != 200) {
                 SalesforceLimitsDataSourceConnection.log('[ERROR - salesforceApexLimitsCallout]:'+ result);
                 result=null;
@@ -679,15 +718,23 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         } catch (Exception excp) {
             SalesforceLimitsDataSourceConnection.log(excp);
         }
+
         return result;
-    }// end of makeCallout
+    }    // end of makeCallout
     /**
      * getSessionId
      * @description get user session id
      * @return  session Id
      */
+    @TestVisible
     private static String getSessionId(){
-        return  UserInfo.getSessionId();
-    }// end of getSessionId
+        // just for testing
+        if ( Test.isRunningTest() ) {
+            string visibleSessionId = EncodingUtil.base64Encode(Blob.valueOf(userinfo.getSessionId()));
+            SalesforceLimitsDataSourceConnection.log('[DATA - getSessionId]:'+ visibleSessionId);
+        }
 
-} // end of SalesforceLimitsDataSourceConnection
+        return UserInfo.getSessionId();
+    }    // end of getSessionId
+
+}     // end of SalesforceLimitsDataSourceConnection
