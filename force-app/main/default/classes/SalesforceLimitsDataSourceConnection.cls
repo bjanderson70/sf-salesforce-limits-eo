@@ -50,6 +50,8 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     static final String DISPLAY_URL= URL.getSalesforceBaseUrl().toExternalForm();
     @TestVisible
     static final boolean DEBUG_LOG = true;
+    @TestVisible
+    static final boolean isTesting = Test.isRunningTest();
 
     /*
      * Our current field-names
@@ -94,7 +96,8 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         DataSource.FilterType.OR_ => ' OR ',
         DataSource.FilterType.STARTS_WITH => ' LIKE \'{0}%\''
     };
-
+    @TestVisible
+    static final List<String> testLogMessages = SalesforceLimitsDataSourceConnection.isTesting ? new List<String>() : null;
     /**
      * Results from our REST API call
      */
@@ -296,6 +299,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         this.limitWhereValue='';
         this.limitAscending=true;
         this.limitOrderBy='';
+        this.limitOffset=0;
         this.limitIdentityType =  connectionParams != null ? connectionParams.principalType :  DataSource.IdentityType.ANONYMOUS;
 
     }    // end of ctor
@@ -326,6 +330,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     /*
      * holds the results from the REST API
      */
+    @TestVisible
     public List<LimitResultsWrapper> theLimits {
         get;
         private set;
@@ -362,9 +367,14 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      */
     public static void log(String message, boolean loggerOn) {
         if ( message != null && loggerOn ) {
-            system.debug('+++ SalesforceLimitsDataSourceConnection:' + message);
+            String msg = '+++ SalesforceLimitsDataSourceConnection:' + message;
+            // for unit testing
+            if ( SalesforceLimitsDataSourceConnection.isTesting ) {
+                testLogMessages.add(msg);
+            }
+            system.debug(msg);
         }
-    }    // end of log
+    }// end of log
 
     /*
      * Sync with Salesforce
@@ -544,9 +554,9 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         }
     }// end of getFilterSoqlTerm
 
-     /*
-      * Determine user order
-      */
+    /*
+     * Determine user order
+     */
 
     @TestVisible
     private void getOrderSoqlTerm(List<DataSource.Order> orders)
@@ -578,17 +588,23 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         // any data
         if ( this.theLimits == null ) {
             this.theLimits = new List<LimitResultsWrapper>();
-        }
-        // have we gotten the data already ???
-        if ( this.theLimits.size() > 0 ) {
+            // have we gotten the data already ???
+        } else if ( this.theLimits.size() > 0 ) {
             return this.theLimits;
         }
 
         try
         {
             DataSource.IdentityType iType = this.limitIdentityType;
-            // one API call ( did not want to hard code version)
-            String version=SalesforceLimitsDataSourceConnection.getLatestAPIVersion(iType);
+            // one API call ( did not want to hard code version for prod)
+            String version=SERVICE_VERSION;
+            // if we are testing, the two API calls makes mocking more challenging
+            if ( !SalesforceLimitsDataSourceConnection.isTesting ) {
+                version=SalesforceLimitsDataSourceConnection.getLatestAPIVersion(iType);
+            }
+            /*
+             * Here (when testing) the mock will come into play [the version will be pre-defined]
+             */
             // format url
             String endpoint = SalesforceLimitsDataSourceConnection.makeEndpoint (iType,'/services/data/v'+version +'/limits');
             // make request
@@ -672,7 +688,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
 
         // if anonymous, set the session (sessionid can be null )
         if ( itype == DataSource.IdentityType.ANONYMOUS ) {
-            String sessionId = getSessionId();
+            String sessionId = SalesforceLimitsDataSourceConnection.getSessionId();
             if ( string.isNotBlank(sessionId)) {
                 // Bearer
                 request.setHeader('Authorization','Bearer '+ sessionId );
@@ -701,7 +717,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             Http callout = new Http();
             HttpResponse resp = callout.send(req);
             result = resp.getBody();
-            
+
             // handle redirect
             while (resp.getStatusCode() == 302) {
                 req.setEndpoint(resp.getHeader('Location'));
@@ -730,13 +746,14 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      */
     @TestVisible
     private static String getSessionId(){
+        String session =userinfo.getSessionId();
         // just for testing
-        if ( Test.isRunningTest() ) {
-            string visibleSessionId = EncodingUtil.base64Encode(Blob.valueOf(userinfo.getSessionId()));
+        if ( SalesforceLimitsDataSourceConnection.isTesting ) {
+            string visibleSessionId = EncodingUtil.base64Encode(Blob.valueOf(session));
             SalesforceLimitsDataSourceConnection.log('[DATA - getSessionId]:'+ visibleSessionId);
         }
 
-        return UserInfo.getSessionId();
+        return session;
     }    // end of getSessionId
 
 }// end of SalesforceLimitsDataSourceConnection

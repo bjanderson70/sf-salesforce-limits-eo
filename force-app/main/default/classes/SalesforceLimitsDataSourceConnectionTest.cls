@@ -39,6 +39,10 @@
 @isTest
 private class SalesforceLimitsDataSourceConnectionTest {
 
+    ///////////////////////////////////////////////////////////////
+    // Data members
+    ///////////////////////////////////////////////////////////////
+
     static List<String> fieldNames = new List<String> {
         SalesforceLimitsDataSourceConnection.FIELDNAME_MAX
         ,SalesforceLimitsDataSourceConnection.FIELDNAME_NAME
@@ -57,6 +61,11 @@ private class SalesforceLimitsDataSourceConnectionTest {
         ,new SalesforceLimitsDataSourceConnection.LimitResults('test2',100000,10)
         ,new SalesforceLimitsDataSourceConnection.LimitResults('test1',100,100)
     };
+    static Set<String> contentSet = new Set<String> {
+        'test'
+        ,'test1'
+        ,'test2'
+    };
     static List<String> sortByNameList = new List<String> {
         'test'
         ,'test1'
@@ -73,6 +82,234 @@ private class SalesforceLimitsDataSourceConnectionTest {
         ,'test'
     };
 
+    class TestException extends Exception {}
+
+    /*
+     * This mock will be used when we call out (API) for salesforce limit
+     */
+    public class MockLimitsHttpResponseGenerator implements HttpCalloutMock {
+        // Implement this interface method
+        public HTTPResponse respond(HTTPRequest req) {
+            System.assertEquals('GET', req.getMethod());
+
+            // Create a fake response
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setBody('{"AnalyticsExternalDataSizeMB":{"Max":1000,"Remaining":100}}');
+            res.setStatusCode(200);
+            return res;
+        }
+    }// end of MockLimitsHttpResponseGenerator
+     /*
+      * This mock will be used when we call out (API) for version
+      */
+    public class MockAPIVersionHttpResponseGenerator implements HttpCalloutMock {
+        // Implement this interface method
+        public HTTPResponse respond(HTTPRequest req) {
+            System.assertEquals('GET', req.getMethod());
+
+            // Create a fake response
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setBody('{"Spring 20":{"label":"Spring 20","url":"/services/data/v48.0", "version":"48.0"}}');
+            res.setStatusCode(200);
+            return res;
+        }
+    } // end of MockLimitsHttpResponseGenerator
+
+    ///////////////////////////////////////////////////////////////
+    // Unit Tests
+    ///////////////////////////////////////////////////////////////
+
+    /*
+     * Test getSessionId
+     */
+    @isTest
+    static void testgetSessionId(){
+        // assign
+        final string sessionInfo = '[DATA - getSessionId]';
+        // act
+        String value=SalesforceLimitsDataSourceConnection.getSessionId();
+        // assert
+        system.assertEquals(true, SalesforceLimitsDataSourceConnectionTest.containedInLog(sessionInfo));
+        system.assertEquals(true, string.isNotEmpty(value));
+    }// end of testgetSessionId
+
+    /*
+     * Test getLatestAPIVersion
+     */
+    @isTest
+    static void testgetLatestAPIVersion() {
+        // assign
+        Test.setMock(HttpCalloutMock.class, new MockAPIVersionHttpResponseGenerator());
+        DataSource.IdentityType itype = DataSource.IdentityType.ANONYMOUS;
+        // act
+        String version=SalesforceLimitsDataSourceConnection.getLatestAPIVersion(itype);
+        // assert
+        system.assertEquals(SalesforceLimitsDataSourceConnection.SERVICE_VERSION, version);
+
+    }// end of testgetLatestAPIVersion
+    /*
+     * Test getFilterSoqlTerm
+     */
+    @isTest
+    static void testgetFilterSoqlTerm() {
+        // assign
+        SalesforceLimitsDataSourceConnection ctor = new SalesforceLimitsDataSourceConnection();
+        // act
+        ctor.getFilterSoqlTerm(null);
+        // assert
+        system.assertEquals('', ctor.limitWhere);
+        system.assertEquals ('',ctor.limitWhereValue);
+
+    }// end of testgetFilterSoqlTerm
+
+    /*
+     * Test getOrderSoqlTerm
+     */
+    @isTest
+    static void testgetOrderSoqlTerm() {
+        // assign
+        SalesforceLimitsDataSourceConnection ctor = new SalesforceLimitsDataSourceConnection();
+        // act
+        ctor.getOrderSoqlTerm(null);
+        // assert
+        system.assertEquals('', ctor.limitOrderBy);
+        system.assertEquals (true,ctor.limitAscending);
+
+    }// end of testgetOrderSoqlTerm
+    /*
+     * Test salesforceApexLimitsCallout
+     */
+    @isTest
+    static void testsalesforceApexLimitsCallout(){
+
+        // assign
+        SalesforceLimitsDataSourceConnection ctor = new SalesforceLimitsDataSourceConnection();
+        // Set mock callout class
+        Test.setMock(HttpCalloutMock.class, new MockLimitsHttpResponseGenerator());
+
+        List<SalesforceLimitsDataSourceConnection.LimitResultsWrapper> wrapper=ctor.salesforceApexLimitsCallout();
+
+        // there should only be one
+        SalesforceLimitsDataSourceConnection.LimitResultsWrapper wrap = wrapper[0];
+
+        System.assertEquals(1, wrapper.size());
+        // see MockLimitsHttpResponseGenerator above
+        System.assertEquals('AnalyticsExternalDataSizeMB', wrap.lresult.name);
+        System.assertEquals(1000, wrap.lresult.max);
+        System.assertEquals(100, wrap.lresult.remaining);
+
+    }// end of testsalesforceApexLimitsCallout
+    /*
+     * Test sync
+     */
+    @isTest
+    static void testsync() {
+        // assign
+        SalesforceLimitsDataSourceConnection ctor = new SalesforceLimitsDataSourceConnection();
+        // act
+        List<DataSource.Table> tables=ctor.sync();
+
+        for ( Datasource.Table table : tables) {
+            // check the fields
+            for ( Datasource.Column column : table.columns ) {
+                String cname = column.name;
+                Boolean found = false;
+                for ( String lname : fieldNames) {
+                    if ( lname==cname ) {
+                        found=true;
+                        break;
+                    }
+                }
+                system.assertEquals(true, found);
+            }
+            system.assertEquals ( SalesforceLimitsDataSourceConnection.DESCRIPTION,table.description);
+            system.assertEquals ( SalesforceLimitsDataSourceConnection.DESCRIPTION,table.labelPlural);
+            system.assertEquals ( SalesforceLimitsDataSourceConnection.LABEL_SINGULAR,table.labelSingular);
+        }
+        system.assertEquals ( 1,tables.size());
+
+    }// end of testsync
+
+    /*
+     * Test compareValues
+     */
+    @isTest
+    static void testlog() {
+        Map<String,String> messages = new Map<String,String> {
+            '1'=> 'message 1'
+            ,'2' => null
+            ,'3' => 'message 3'
+        };
+
+        for (String key: messages.keySet()) {
+            String msg = messages.get(key);
+            Boolean expected = msg == null ? false : true;
+
+            SalesforceLimitsDataSourceConnection.log(msg);
+            SalesforceLimitsDataSourceConnection.log(new TestException(msg));
+            // assert
+            system.assertEquals(expected, SalesforceLimitsDataSourceConnectionTest.containedInLog(msg));
+        }
+    }// end of testlog
+
+    /*
+     * Test compareValues
+     */
+    @isTest
+    static void testtheLimits() {
+        List<SalesforceLimitsDataSourceConnection.LimitResultsWrapper> wrapper= new  List<SalesforceLimitsDataSourceConnection.LimitResultsWrapper>();
+        SalesforceLimitsDataSourceConnection ctor= new SalesforceLimitsDataSourceConnection();
+        for (SalesforceLimitsDataSourceConnection.LimitResults lr: testOracle.values() ) {
+            wrapper.add(new SalesforceLimitsDataSourceConnection.LimitResultsWrapper(lr));
+
+        }
+        ctor.theLimits = wrapper;
+        system.assertEquals (wrapper.size(),ctor.theLimits.size());
+        for ( SalesforceLimitsDataSourceConnection.LimitResultsWrapper wrap: wrapper) {
+            if ( !contentSet.contains(wrap.name)) {
+                system.assertEquals(false, true,'testtheLimits:The Limits property did not contain a limit result name');
+            }
+        }
+
+    }// end of testtheLimits
+    /*
+     * Test compareValues
+     */
+    @isTest
+    static void testctors() {
+        DataSource.ConnectionParams cparams = new DataSource.ConnectionParams();
+        cparams.principalType = DataSource.IdentityType.NAMED_USER;
+
+        List<SalesforceLimitsDataSourceConnection> ctors = new List<SalesforceLimitsDataSourceConnection> {
+            new SalesforceLimitsDataSourceConnection(null),
+            new SalesforceLimitsDataSourceConnection ()
+
+        };
+        for (SalesforceLimitsDataSourceConnection ctor: ctors ) {
+            system.assertEquals(true, ctor != null);
+            system.assertEquals (null,ctor.theLimits);
+            system.assertEquals ('', ctor.limitWhere);
+            system.assertEquals ('',ctor.limitWhereValue);
+            system.assertEquals (true,ctor.limitAscending);
+            system.assertEquals ('', ctor.limitOrderBy);
+            system.assertEquals (0, ctor.limitOffset);
+            system.assertEquals ( DataSource.IdentityType.ANONYMOUS,ctor.limitIdentityType);
+        }
+        SalesforceLimitsDataSourceConnection ctor= new SalesforceLimitsDataSourceConnection (cparams);
+        system.assertEquals(true, ctor != null);
+        system.assertEquals (null,ctor.theLimits);
+        system.assertEquals ('', ctor.limitWhere);
+        system.assertEquals ('',ctor.limitWhereValue);
+        system.assertEquals (true,ctor.limitAscending);
+        system.assertEquals ('', ctor.limitOrderBy);
+        system.assertEquals (0, ctor.limitOffset);
+        system.assertEquals ( DataSource.IdentityType.NAMED_USER,ctor.limitIdentityType);
+    }// end of testctors
+    /*
+     * Test compareValues
+     */
     @isTest
     static void testcompareValues() {
         Map<String,Integer> comparison = new Map<String,Integer> {
@@ -95,6 +332,9 @@ private class SalesforceLimitsDataSourceConnectionTest {
         }
 
     }// end of testcompareValues
+    /*
+     * Test sort and compareTo
+     */
     @isTest
     static void testLimitResultsWrapper_compareTo() {
 
@@ -160,4 +400,14 @@ private class SalesforceLimitsDataSourceConnectionTest {
     // Helpers
     ///////////////////////////////////////////////////////////////////////////////
 
+    static boolean containedInLog(string message) {
+        // is message in static container
+        if ( message != null) {
+            // iterate as this is not a set
+            for ( String value : SalesforceLimitsDataSourceConnection.testLogMessages) {
+                if ( value.contains(message)) { return true;}
+            }
+        }
+        return false;
+    }//end of containedInLog
 }
