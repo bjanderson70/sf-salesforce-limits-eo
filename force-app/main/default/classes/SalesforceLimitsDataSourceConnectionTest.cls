@@ -81,7 +81,12 @@ private class SalesforceLimitsDataSourceConnectionTest {
         ,'test1'
         ,'test'
     };
+    @TestVisible
+    static final String FILTER = 'DailyApiRequests';
+    @TestVisible
+    static final String MOCK_LIMIT_FIELD = 'AnalyticsExternalDataSizeMB';
 
+    @TestVisible
     class TestException extends Exception {}
 
     /*
@@ -95,7 +100,7 @@ private class SalesforceLimitsDataSourceConnectionTest {
             // Create a fake response
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
-            res.setBody('{"AnalyticsExternalDataSizeMB":{"Max":1000,"Remaining":100}}');
+            res.setBody('{"' + MOCK_LIMIT_FIELD + '":{"Max":1000,"Remaining":100}}');
             res.setStatusCode(200);
             return res;
         }
@@ -111,7 +116,7 @@ private class SalesforceLimitsDataSourceConnectionTest {
             // Create a fake response
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
-            res.setBody('{"Spring 20":{"label":"Spring 20","url":"/services/data/v48.0", "version":"48.0"}}');
+            res.setBody ('{[{"label":"Spring 20","url":"/services/data/v48.0", "version":"48.0"}]}');
             res.setStatusCode(200);
             return res;
         }
@@ -120,7 +125,18 @@ private class SalesforceLimitsDataSourceConnectionTest {
     ///////////////////////////////////////////////////////////////
     // Unit Tests
     ///////////////////////////////////////////////////////////////
+    /*
+     * Test query
+     */
+    @isTest
+    static void testquery(){
+        DataSource.QueryContext query = SalesforceLimitsDataSourceConnectionTest.createQuery();
+        // assign
+        SalesforceLimitsDataSourceConnection ctor = new SalesforceLimitsDataSourceConnection();
+        // act
+        ctor.query(query);
 
+    }// end of testquery
     /*
      * Test getSessionId
      */
@@ -156,11 +172,20 @@ private class SalesforceLimitsDataSourceConnectionTest {
     static void testgetFilterSoqlTerm() {
         // assign
         SalesforceLimitsDataSourceConnection ctor = new SalesforceLimitsDataSourceConnection();
+        Test.startTest();
         // act
         ctor.getFilterSoqlTerm(null);
         // assert
         system.assertEquals('', ctor.limitWhere);
         system.assertEquals ('',ctor.limitWhereValue);
+        system.assertEquals (DataSource.FilterType.EQUALS,ctor.limitFilterType);
+        // act
+        ctor.getFilterSoqlTerm(SalesforceLimitsDataSourceConnectionTest.createFilter());
+        Test.stopTest();
+        // assert
+        system.assertEquals('', ctor.limitWhere);
+        system.assertEquals ('',ctor.limitWhereValue);
+        system.assertEquals (DataSource.FilterType.EQUALS,ctor.limitFilterType);
 
     }// end of testgetFilterSoqlTerm
 
@@ -174,8 +199,18 @@ private class SalesforceLimitsDataSourceConnectionTest {
         // act
         ctor.getOrderSoqlTerm(null);
         // assert
-        system.assertEquals('', ctor.limitOrderBy);
+        system.assertEquals(SalesforceLimitsDataSourceConnection.FIELDNAME_NAME, ctor.limitOrderBy);
         system.assertEquals (true,ctor.limitAscending);
+
+        // assign
+        List<DataSource.Order> orders = SalesforceLimitsDataSourceConnectionTest.createOrders(SalesforceLimitsDataSourceConnection.FIELDNAME_MAX);
+
+        // act
+        ctor.getOrderSoqlTerm(orders);
+        // assert
+        system.assertEquals(SalesforceLimitsDataSourceConnection.FIELDNAME_MAX, ctor.limitOrderBy);
+        system.assertEquals (false,ctor.limitAscending);
+
 
     }// end of testgetOrderSoqlTerm
     /*
@@ -196,7 +231,7 @@ private class SalesforceLimitsDataSourceConnectionTest {
 
         System.assertEquals(1, wrapper.size());
         // see MockLimitsHttpResponseGenerator above
-        System.assertEquals('AnalyticsExternalDataSizeMB', wrap.lresult.name);
+        System.assertEquals(MOCK_LIMIT_FIELD, wrap.lresult.name);
         System.assertEquals(1000, wrap.lresult.max);
         System.assertEquals(100, wrap.lresult.remaining);
 
@@ -293,7 +328,7 @@ private class SalesforceLimitsDataSourceConnectionTest {
             system.assertEquals ('', ctor.limitWhere);
             system.assertEquals ('',ctor.limitWhereValue);
             system.assertEquals (true,ctor.limitAscending);
-            system.assertEquals ('', ctor.limitOrderBy);
+            system.assertEquals (SalesforceLimitsDataSourceConnection.FIELDNAME_NAME, ctor.limitOrderBy);
             system.assertEquals (0, ctor.limitOffset);
             system.assertEquals ( DataSource.IdentityType.ANONYMOUS,ctor.limitIdentityType);
         }
@@ -303,7 +338,7 @@ private class SalesforceLimitsDataSourceConnectionTest {
         system.assertEquals ('', ctor.limitWhere);
         system.assertEquals ('',ctor.limitWhereValue);
         system.assertEquals (true,ctor.limitAscending);
-        system.assertEquals ('', ctor.limitOrderBy);
+        system.assertEquals (SalesforceLimitsDataSourceConnection.FIELDNAME_NAME, ctor.limitOrderBy);
         system.assertEquals (0, ctor.limitOffset);
         system.assertEquals ( DataSource.IdentityType.NAMED_USER,ctor.limitIdentityType);
     }// end of testctors
@@ -410,4 +445,62 @@ private class SalesforceLimitsDataSourceConnectionTest {
         }
         return false;
     }//end of containedInLog
-}
+
+    static List<DataSource.Order> createOrders() {
+        return SalesforceLimitsDataSourceConnectionTest.createOrders(SalesforceLimitsDataSourceConnection.FIELDNAME_NAME);
+    } // end of createOrders
+
+    static List<DataSource.Order> createOrders(string fieldname) {
+        String fname = string.isEmpty(fieldname) ? SalesforceLimitsDataSourceConnection.FIELDNAME_NAME : fieldname;
+
+        List<DataSource.Order> orders = new List<DataSource.Order>();
+        DataSource.Order order = new DataSource.Order();
+        order.columnName=fname;
+        order.direction=Datasource.OrderDirection.DESCENDING;
+        order.tableName=SalesforceLimitsDataSourceConnection.TABLE_NAME;
+
+        orders.add(order);
+
+        return orders;
+    }// end of createOrders
+
+    static DataSource.Filter createFilter() {
+        DataSource.Filter filter = new DataSource.Filter();
+        filter.columnName = SalesforceLimitsDataSourceConnection.FIELDNAME_NAME;
+        filter.columnValue = FILTER;
+        filter.subfilters = null;
+        filter.tableName = SalesforceLimitsDataSourceConnection.TABLE_NAME;
+        filter.type=DataSource.FilterType.EQUALS;
+        return filter;
+    }// end of createFilter
+
+    static DataSource.QueryContext createQuery() {
+
+        DataSource.QueryContext query = new DataSource.QueryContext();
+        List<DataSource.ColumnSelection> cselection = new  List<DataSource.ColumnSelection>();
+        DataSource.ColumnSelection sel1= new DataSource.ColumnSelection();
+        DataSource.ColumnSelection sel2=new DataSource.ColumnSelection();
+
+        query.tableSelection = new DataSource.TableSelection();
+
+        sel1.columnName=SalesforceLimitsDataSourceConnection.FIELDNAME_MAX;
+        sel1.tableName=SalesforceLimitsDataSourceConnection.TABLE_NAME;
+        sel1.aggregation=DataSource.QueryAggregation.NONE;
+
+        sel2.columnName=SalesforceLimitsDataSourceConnection.FIELDNAME_NAME;
+        sel2.tableName=SalesforceLimitsDataSourceConnection.TABLE_NAME;
+        sel2.aggregation=DataSource.QueryAggregation.NONE;
+
+        cselection.add(sel1);
+        cselection.add(sel2);
+
+        query.maxResults=1;
+        query.offset=0;
+        query.tableSelection.filter=SalesforceLimitsDataSourceConnectionTest.createFilter();
+        query.tableSelection.order = SalesforceLimitsDataSourceConnectionTest.createOrders();
+        query.tableSelection.columnsSelected=cselection;
+
+        return query;
+    }// end of createQuery
+
+}// end of SalesforceLimitsDataSourceConnectionTest

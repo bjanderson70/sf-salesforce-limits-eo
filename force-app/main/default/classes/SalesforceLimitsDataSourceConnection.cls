@@ -72,6 +72,16 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     static final string FIELDNAME_DISPLAY_URL= 'DisplayUrl';
 
     @TestVisible
+    static final Set<String> fieldNameSet = new Set<String> {
+        FIELDNAME_NAME
+        ,FIELDNAME_MAX
+        ,FIELDNAME_RATIO
+        ,FIELDNAME_REMAINING
+        ,FIELDNAME_EXTERNAL_ID
+        ,FIELDNAME_ID
+        ,FIELDNAME_DISPLAY_URL
+    };
+    @TestVisible
     static final string DESCRIPTION = 'Salesforce Limits';
     @TestVisible
     static final string LABEL_SINGULAR = 'Salesforce Limit';
@@ -81,23 +91,25 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      * map filter to string
      **/
     @TestVisible
-    static final Map<DataSource.FilterType, String> filterMap = new Map<DataSource.FilterType, String> {
-        DataSource.FilterType.AND_ => ' AND ',
-        DataSource.FilterType.CONTAINS => ' LIKE \'%{0}%\'',
-        DataSource.FilterType.ENDS_WITH => ' LIKE \'%{0}\'',
-        DataSource.FilterType.EQUALS => ' = ',
-        DataSource.FilterType.GREATER_THAN => ' > ',
-        DataSource.FilterType.GREATER_THAN_OR_EQUAL_TO => ' >= ',
-        DataSource.FilterType.LESS_THAN => ' < ',
-        DataSource.FilterType.LESS_THAN_OR_EQUAL_TO => ' <= ',
-        DataSource.FilterType.LIKE_ => ' LIKE ',
-        DataSource.FilterType.NOT_ => ' NOT ',
-        DataSource.FilterType.NOT_EQUALS => ' <> ',
-        DataSource.FilterType.OR_ => ' OR ',
-        DataSource.FilterType.STARTS_WITH => ' LIKE \'{0}%\''
+    static final Map<DataSource.FilterType, integer> filterMap = new Map<DataSource.FilterType, integer> {
+        DataSource.FilterType.AND_ => 0,
+        DataSource.FilterType.CONTAINS => 0,
+        DataSource.FilterType.ENDS_WITH => 0,
+        DataSource.FilterType.EQUALS => 0,
+        DataSource.FilterType.GREATER_THAN => -1,
+        DataSource.FilterType.GREATER_THAN_OR_EQUAL_TO => -1,
+        DataSource.FilterType.LESS_THAN => 1,
+        DataSource.FilterType.LESS_THAN_OR_EQUAL_TO => 1,
+        DataSource.FilterType.LIKE_ => 0,
+        DataSource.FilterType.NOT_ => 0,
+        DataSource.FilterType.NOT_EQUALS => 0,
+        DataSource.FilterType.OR_ => 0,
+        DataSource.FilterType.STARTS_WITH => 0
     };
+
     @TestVisible
     static final List<String> testLogMessages = SalesforceLimitsDataSourceConnection.isTesting ? new List<String>() : null;
+
     /**
      * Results from our REST API call
      */
@@ -174,6 +186,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         public String name { get { return lresult.name;}}
         public String externalId { get { return lresult.externalId;  }}
         public String displayUrl { get { return lresult.displayUrl;  }}
+
         /*
          * Sort by Name
          */
@@ -291,6 +304,12 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     //
     //////////////////////////////////////////////////////////////////////////////////
     /**
+     * default ctor
+     */
+    global SalesforceLimitsDataSourceConnection() {
+        this(null);
+    }      // end of ctor
+    /**
      * ctor
      */
     global SalesforceLimitsDataSourceConnection(DataSource.ConnectionParams connectionParams) {
@@ -298,17 +317,13 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         this.limitWhere='';
         this.limitWhereValue='';
         this.limitAscending=true;
-        this.limitOrderBy='';
+        this.limitOrderBy=FIELDNAME_NAME;
         this.limitOffset=0;
+        this.limitFilterType=DataSource.FilterType.EQUALS;
         this.limitIdentityType =  connectionParams != null ? connectionParams.principalType :  DataSource.IdentityType.ANONYMOUS;
 
     }    // end of ctor
-    /**
-     * default ctor
-     */
-    global SalesforceLimitsDataSourceConnection() {
-        this(null);
-    }    // end of ctor
+
 
     //////////////////////////////////////////////////////////////////////////////////
     // Public Properties
@@ -318,14 +333,20 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     /*
      * Used this global properties to understand query parameters for processing later
      */
-
+    @TestVisible
     public String limitOrderBy { get; private set;}
+    @TestVisible
     public boolean limitAscending { get; private set;}
+    @TestVisible
     public integer limitOffset { get; private set;}
+    @TestVisible
     public String limitWhere { get; private set;}
-    public String limitWhereValue {get; private set;}
+    @TestVisible
+    public String limitWhereValue { get; private set; }
+    @TestVisible
     public DataSource.IdentityType limitIdentityType {get; private set;}
-
+    @TestVisible
+    public DataSource.FilterType limitFilterType { get; private set;}
 
     /*
      * holds the results from the REST API
@@ -405,73 +426,81 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
      */
     override global DataSource.TableResult query(DataSource.QueryContext context) {
 
-        /*
-         * get all the user's query information
-         */
-        this.limitOffset = context.offset;
-        this.getFilterSoqlTerm(context.tableSelection.filter);
-        this.getOrderSoqlTerm(context.tableSelection.order);
+        try {
 
-        if (context.tableSelection.columnsSelected.size() == 1 &&
-            context.tableSelection.columnsSelected.get(0).aggregation ==
-            DataSource.QueryAggregation.COUNT)
-        {
-            List<Map<String, Object> > countResponse = new List<Map<String, Object> >();
-            Map<String, Object> countRow = new Map<String, Object>();
-            integer totalRows  = this.salesforceApexLimitsCallout().size();
+            // log('+++++ query.context:'+JSON.serialize(context.tableSelection) + '++++');
+             
+            /*
+             * get all the user's query information
+             */
+            this.limitOffset = context.offset;
+            this.getFilterSoqlTerm(context.tableSelection.filter);
+            this.getOrderSoqlTerm(context.tableSelection.order);
 
-            countRow.put(context.tableSelection.columnsSelected.get(0).columnName, totalRows);
-            countResponse.add(countRow);
-            return DataSource.TableResult.get(context,countResponse);
-        }
+            if (context.tableSelection.columnsSelected.size() == 1 &&
+                context.tableSelection.columnsSelected.get(0).aggregation ==
+                DataSource.QueryAggregation.COUNT)
+            {
+                List<Map<String, Object> > countResponse = new List<Map<String, Object> >();
+                Map<String, Object> countRow = new Map<String, Object>();
+                integer totalRows  = this.salesforceApexLimitsCallout().size();
 
-        /*
-         * Note: Performance is 2*O(n) as we need to sort. Because this is
-         * a very small list; improvements were not done
-         */
-        List<Map<String,Object> > rowsList = new List<Map<String, Object> >();
-        // all data
-        List<LimitResultsWrapper> results = this.salesforceApexLimitsCallout();
-        // this is the filterd (to be sorted) list
-        List<LimitResultsWrapper> filterResults = this.filterAllResults(results);
+                countRow.put(context.tableSelection.columnsSelected.get(0).columnName, totalRows);
+                countResponse.add(countRow);
+                return DataSource.TableResult.get(context,countResponse);
+            }
 
-        // sort according to users request, if any
-        if ( string.isNotBlank(this.limitOrderBy) ) {
-            filterResults.sort();
-        }
+            /*
+             * Note: Performance is 2*O(n) as we need to sort. Because this is
+             * a very small list; improvements were not done
+             */
+            List<Map<String,Object> > rowsList = new List<Map<String, Object> >();
+            // all data
+            List<LimitResultsWrapper> results = this.salesforceApexLimitsCallout();
+            // this is the filterd (to be sorted) list
+            List<LimitResultsWrapper> filterResults = this.filterAllResultsByWhere(results);
 
-        integer startAt = 0;
-        Map<String, Object> rowResults=null;
-        Boolean addExternal = false;
+            // sort according to users request, if any
+            if ( string.isNotBlank(this.limitOrderBy) ) {
+                filterResults.sort();
+            }
 
-        // iterate over the list, starting with offset
-        for (LimitResultsWrapper lresult: filterResults ) {
-            if ( startAt >= this.limitOffset ) {
-                rowResults = new Map<String, Object>();
-                // iterate over the columns
-                for(Datasource.ColumnSelection col: context.tableSelection.columnsSelected) {
-                    rowResults.put (col.columnName,lresult.getBy(col.columnName));
-                    // check for external id
-                    if ( addExternal == false && col.columnName==FIELDNAME_EXTERNAL_ID) {
-                        addExternal=true;
+            integer startAt = 0;
+            Map<String, Object> rowResults=null;
+            Boolean addExternal = false;
+
+            // iterate over the list, starting with offset
+            for (LimitResultsWrapper lresult: filterResults ) {
+                if ( startAt >= this.limitOffset ) {
+                    rowResults = new Map<String, Object>();
+                    // iterate over the columns
+                    for(Datasource.ColumnSelection col: context.tableSelection.columnsSelected) {
+                        rowResults.put (col.columnName,lresult.getBy(col.columnName));
+                        // check for external id
+                        if ( addExternal == false && col.columnName==FIELDNAME_EXTERNAL_ID) {
+                            addExternal=true;
+                        }
                     }
-                }
 
-                // always add external id column
-                if ( addExternal == false) {
-                    rowResults.put (FIELDNAME_EXTERNAL_ID,lresult.getBy(FIELDNAME_EXTERNAL_ID));
-                }
-                rowsList.add(rowResults);
-                rowResults=null;
-                addExternal=false;
-            }    // end if
-            startAt++;
-        }    // end for
+                    // always add external id column
+                    if ( addExternal == false) {
+                        rowResults.put (FIELDNAME_EXTERNAL_ID,lresult.getBy(FIELDNAME_EXTERNAL_ID));
+                    }
+                    rowsList.add(rowResults);
+                    rowResults=null;
+                    addExternal=false;
+                } // end if
+                startAt++;
+            } // end for
 
-        Datasource.TableResult queryResult = DataSource.TableResult.get(context,rowsList);
-        queryResult.totalSize = rowsList.size();
+            Datasource.TableResult queryResult = DataSource.TableResult.get(context,rowsList);
+            queryResult.totalSize = rowsList.size();
 
-        return queryResult;
+            return queryResult;
+        }catch (Exception excp) {
+            log(excp);
+        }
+        return null;
 
     }    // end of query
 
@@ -488,16 +517,22 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     //////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * filterAllResults
-     * @description based on query, determine the results to return
+     * filterAllResultsByWhere
+     * @description based on query, determine the results to return by the where clause
      * @param  results current list
      * @return collection of filtered items
      */
     @TestVisible
-    private List<LimitResultsWrapper> filterAllResults( List<LimitResultsWrapper> results){
+    private List<LimitResultsWrapper> filterAllResultsByWhere( List<LimitResultsWrapper> results){
 
         // this is the filterd (sorted) list
         List<LimitResultsWrapper> filterResults = new List<LimitResultsWrapper>();
+        // go ahead and do all the relevant checks ( no need to do O(n) times)
+        Boolean isEmptyWhere =  string.isEmpty(this.limitWhere)
+        , addItem = isEmptyWhere || fieldNameSet.contains(this.limitWhere)
+        , hasValue = !isEmptyWhere && string.isNotEmpty(this.limitWhereValue);
+        // the expected result from a compare ( -1,1,0)
+        Integer compareTo = filterMap.get(this.limitFilterType);
 
         // determine what gets displayed
         for (LimitResultsWrapper lresult: results ) {
@@ -505,54 +540,69 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             lresult.sortBy = this.limitOrderBy;
 
             // all data ? ( can only have one where parameter)
-            if ( string.isEmpty(this.limitWhere) ) {
-                filterResults.add(lresult);
-            } else if ( ((this.limitWhere == FIELDNAME_ID || this.limitWhere == FIELDNAME_EXTERNAL_ID)
-                         && this.limitWhereValue == lresult.externalId)   ) {
-                filterResults.add(lresult);
-            } else if ( ((this.limitWhere == FIELDNAME_NAME )
-                         && this.limitWhereValue == lresult.name)   ) {
-                filterResults.add(lresult);
-            } else if ( ((this.limitWhere == FIELDNAME_RATIO )
-                         && this.limitWhereValue == string.valueOf(lresult.ratio))   ) {
-                filterResults.add(lresult);
-            } else if ( ((this.limitWhere == FIELDNAME_MAX )
-                         && this.limitWhereValue == string.valueOf (lresult.max))   ) {
-                filterResults.add(lresult);
-            } else if ( ((this.limitWhere == FIELDNAME_REMAINING )
-                         && this.limitWhereValue == string.valueOf (lresult.remaining))   ) {
-                filterResults.add(lresult);
+            if ( addItem ) {
+                if ( hasValue ) {
+                    // here we filter a bit ( not ALL values)
+                    if ( compareTo==lresult.compareValues(this.limitWhere
+                                                          , this.convertToRightType(this.limitWhere,this.limitWhereValue)
+                                                          , lresult.getBy(this.limitWhere))) {
+                        filterResults.add(lresult);
+                    }
+                } else {
+                    filterResults.add(lresult);
+                }
             }
-
         }
         return filterResults;
-    }    // end of filterAllResults
+    }// end of filterAllResultsByWhere
+    /**
+     * convertToRightType
+     * @description convert data type to excepted type
+     * @param  name  name of item
+     * @param  value value of item
+     * @return right type ( string or decimal)
+     */
+    @TestVisible
+    private Object convertToRightType(String name, String value)
+    {
+        Decimal result = 0;
+        if ( name == FIELDNAME_NAME
+             || name == FIELDNAME_EXTERNAL_ID
+             || name == FIELDNAME_DISPLAY_URL ) {
+            return value;
+        }
+        try {
+            result= Decimal.valueOf(value);
+        } catch (Exception excp) {}
+        return result;
 
+    }// end of convertToRightType
     /*
      * Get the filter term (WHERE params)
      */
     @TestVisible
     private void getFilterSoqlTerm(DataSource.Filter filter)
     {
-        this.limitWhereValue = '';
-        this.limitWhere='';
+        // **** WARNNING ****
+        // Calling this during unit test causes a Salesforce Internal Error
+        // even if BOTH connection and provide and been validated & synced!
+        // Just setting the data members below causes an internal error. Bogus!
+        //
+        try  {
 
-        if(filter !=null) {
+            this.limitWhereValue = '';
+            this.limitWhere='';
+            this.limitFilterType=DataSource.FilterType.EQUALS;
 
-            String result = '';
-            String filterTerm = filtermap.get(filter.type);
-            this.limitWhere = filter.columnName;
-
-            if(filterTerm.contains('{0}'))
-            {
-                this.limitWhereValue = string.format(filterTerm, new List<String> {String.valueOf(filter.columnValue)});
-            }
-            else
-            {
+            if(filter !=null) {
+                this.limitWhere = filter.columnName;
                 this.limitWhereValue =  String.valueOf(filter.columnValue);
+                this.limitFilterType=filter.type;
             }
+        } catch (Exception excp) {
+            SalesforceLimitsDataSourceConnection.log(excp);
         }
-    }// end of getFilterSoqlTerm
+    }    // end of getFilterSoqlTerm
 
     /*
      * Determine user order
@@ -561,7 +611,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
     @TestVisible
     private void getOrderSoqlTerm(List<DataSource.Order> orders)
     {
-        this.limitOrderBy='';
+        this.limitOrderBy=FIELDNAME_NAME;
         this.limitAscending=true;
 
         if(orders==null || orders.size()==0 ) {
@@ -576,7 +626,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
             this.limitOrderBy=order.columnName;
             this.limitAscending= order.direction == Datasource.OrderDirection.ASCENDING;
         }
-    }    // end of getOrderSoqlTerm
+    }     // end of getOrderSoqlTerm
 
     /**
      * salesforceApexLimitsCallout
@@ -625,13 +675,13 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
                                                                                    ,resp.Max
                                                                                    ,resp.Remaining)));
                 }
-            }    // end if
+            }     // end if
         } catch(Exception excp) {
             SalesforceLimitsDataSourceConnection.log(excp);
         }
 
         return this.theLimits;
-    }    // end of salesforceApexLimitsCallout
+    }     // end of salesforceApexLimitsCallout
     /**
      * makeEndpoint
      * @description make an endpoint base don identity-type
@@ -644,7 +694,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         String domainUrl = itype == DataSource.IdentityType.ANONYMOUS ? DISPLAY_URL : NAMED_CRED_ORG_URL;
         //  url
         return domainUrl + endpt;
-    }    // end of makeEndpoint
+    }     // end of makeEndpoint
     /*
      * Get the latest API Version
      */
@@ -699,7 +749,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         request.setMethod('GET');
 
         return request;
-    }    // end of createHttpRequest
+    }     // end of createHttpRequest
     /**
      * makeCallout
      * @description make the callout
@@ -738,7 +788,7 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         }
 
         return result;
-    }    // end of makeCallout
+    }     // end of makeCallout
     /**
      * getSessionId
      * @description get user session id
@@ -754,6 +804,6 @@ global without sharing class SalesforceLimitsDataSourceConnection extends DataSo
         }
 
         return session;
-    }    // end of getSessionId
+    }     // end of getSessionId
 
-}// end of SalesforceLimitsDataSourceConnection
+}    // end of SalesforceLimitsDataSourceConnection

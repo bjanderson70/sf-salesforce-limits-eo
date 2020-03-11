@@ -37,10 +37,11 @@
  *
  **/
 global with sharing class SalesforceLimitsDataSourceProvider extends DataSource.Provider {
+
     /**
      * getAuthenticationCapabilities
      * @description what capabilities we support
-     * @return   collection of capabilities
+     * @return collection of capabilities
      */
     override global List<DataSource.AuthenticationCapability> getAuthenticationCapabilities()
     {
@@ -51,10 +52,8 @@ global with sharing class SalesforceLimitsDataSourceProvider extends DataSource.
             DataSource.AuthenticationCapability.ANONYMOUS,
             DataSource.AuthenticationCapability.OAUTH
         };
-
         return capabilities;
     }// end of getAuthenticationCapabilities
-
     /**
      * getCapabilities 
      * @description get Capabilities
@@ -67,7 +66,6 @@ global with sharing class SalesforceLimitsDataSourceProvider extends DataSource.
     
         return capabilities;
     }// end of getCapabilities
-
     /**
      * getConnection description
      * @param  connectionParams connectionParams description
