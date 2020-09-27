@@ -5,13 +5,4 @@
     <iconUrl>https://login.salesforce.com/logos/Salesforce/Salesforce/logo.png</iconUrl>
     <label>Login from Salesforce</label>
     <logoUrl>https://login.salesforce.com/logos/Salesforce/Salesforce/logo.png</logoUrl>
-    <oauthConfig>
-        <callbackUrl>https://YOURDOMAINNAMEHERE.my.salesforce.com/services/authcallback/Salesforce_Limits</callbackUrl>
-        <consumerKey>3NVG9LBJLApeX_PAxholSqyti_hQmqgyTgSZfY6hRrP6TmllfM7Sj2_z8NspoNEsEakCWwrq4AwAwDZjDt0MZ</consumerKey>
-        <isAdminApproved>false</isAdminApproved>
-        <scopes>Api</scopes>
-        <scopes>Web</scopes>
-        <scopes>Full</scopes>
-        <scopes>RefreshToken</scopes>
-    </oauthConfig>
 </ConnectedApp>

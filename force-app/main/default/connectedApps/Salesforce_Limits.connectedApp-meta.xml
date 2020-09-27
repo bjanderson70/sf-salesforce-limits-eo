@@ -3,13 +3,4 @@
     <contactEmail>yourname@yourcompany.com</contactEmail>
     <contactPhone>999999999</contactPhone>
     <label>Salesforce Limits</label>
-    <oauthConfig>
-        <callbackUrl>https://YOURDOMAINNAMEHERE.my.salesforce.com/services/authcallback/Salesforce_Limits</callbackUrl>
-        <consumerKey>3NVG9LBJLApeX_PAxholSqyti_q4DYblHV4uhHeMtPz8xiV1thk1P6ueMYl5StZRB9lGCMllJGlFs0WRGSR7C</consumerKey>
-        <isAdminApproved>false</isAdminApproved>
-        <scopes>Api</scopes>
-        <scopes>Web</scopes>
-        <scopes>Full</scopes>
-        <scopes>RefreshToken</scopes>
-    </oauthConfig>
 </ConnectedApp>
