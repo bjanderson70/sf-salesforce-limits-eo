@@ -116,7 +116,7 @@ private class SalesforceLimitsDataSourceConnectionTest {
             // Create a fake response
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
-            res.setBody ('{[{"label":"Spring 20","url":"/services/data/v48.0", "version":"48.0"}]}');
+            res.setBody ('[{"label":"Spring 20","url":"/services/data/v48.0", "version":"48.0"}]');
             res.setStatusCode(200);
             return res;
         }
@@ -136,7 +136,7 @@ private class SalesforceLimitsDataSourceConnectionTest {
         // act
         ctor.query(query);
 
-    }// end of testquery
+    } // end of testquery
     /*
      * Test getSessionId
      */
@@ -175,17 +175,12 @@ private class SalesforceLimitsDataSourceConnectionTest {
         Test.startTest();
         // act
         ctor.getFilterSoqlTerm(null);
-        // assert
-        system.assertEquals('', ctor.limitWhere);
-        system.assertEquals ('',ctor.limitWhereValue);
-        system.assertEquals (DataSource.FilterType.EQUALS,ctor.limitFilterType);
-        // act
-        ctor.getFilterSoqlTerm(SalesforceLimitsDataSourceConnectionTest.createFilter());
         Test.stopTest();
         // assert
         system.assertEquals('', ctor.limitWhere);
         system.assertEquals ('',ctor.limitWhereValue);
         system.assertEquals (DataSource.FilterType.EQUALS,ctor.limitFilterType);
+
 
     }// end of testgetFilterSoqlTerm
 
